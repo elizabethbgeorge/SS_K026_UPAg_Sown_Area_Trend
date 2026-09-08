@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kharif 2026 Crop Analysis Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: #f5f5f5;
+            color: #1a1a1a;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .header {
+            margin-bottom: 2rem;
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #0a3a2a;
+        }
+        
+        .subtitle {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 2rem;
+        }
+        
+        .metric-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .metric-label {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+        
+        .metric-value {
+            font-size: 32px;
+            font-weight: 600;
+        }
+        
+        .metric-expanding {
+            color: #0ca30c;
+        }
+        
+        .metric-contracting {
+            color: #d03b3b;
+        }
+        
+        .metric-range {
+            color: #0066cc;
+        }
+        
+        .chart-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .chart-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: #1a1a1a;
+        }
+        
+        #chartContainer {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            margin-bottom: 1rem;
+        }
+        
+        .chart-help {
+            font-size: 12px;
+            color: #999;
+            font-style: italic;
+            margin-bottom: 1rem;
+        }
+        
+        .controls-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .control-label {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            display: block;
+        }
+        
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+        
+        select:hover {
+            border-color: #999;
+        }
+        
+        select:focus {
+            outline: none;
+            border-color: #0066cc;
+            box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+        }
+        
+        .details-section {
+            display: none;
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-top: 2rem;
+            border-left: 4px solid #0066cc;
+        }
+        
+        .details-section.show {
+            display: block;
+        }
+        
+        .details-header {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            color: #1a1a1a;
+        }
+        
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+        }
+        
+        .crop-list-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .crop-declining-title {
+            color: #d03b3b;
+        }
+        
+        .crop-growing-title {
+            color: #0ca30c;
+        }
+        
+        .crop-item {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .crop-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        
+        .crop-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        
+        .crop-change {
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .crop-change.declining {
+            color: #d03b3b;
+        }
+        
+        .crop-change.growing {
+            color: #0ca30c;
+        }
+        
+        .no-crops {
+            color: #999;
+            font-style: italic;
+        }
+        
+        .threshold-note {
+            font-size: 11px;
+            color: #999;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+            font-style: italic;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .details-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+            
+            h1 {
+                font-size: 22px;
+            }
+            
+            #chartContainer {
+                height: 400px;
+            }
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: #999;
+            font-size: 12px;
+        }
+        
+        .legend {
+            display: flex;
+            gap: 2rem;
+            margin-top: 1.5rem;
+            font-size: 12px;
+            color: #666;
+            justify-content: center;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Kharif 2026 Crop Analysis Dashboard</h1>
+            <p class="subtitle">Crops with change >= ±5% OR top 3 if none qualify | Data source: SS_K026</p>
+        </div>
+        
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-label">Expanding states</div>
+                <div class="metric-value metric-expanding" id="expanding-count">8</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Contracting states</div>
+                <div class="metric-value metric-contracting" id="contracting-count">11</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Change range</div>
+                <div class="metric-value metric-range" id="range-text">+2.95% to -5.68%</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Total states</div>
+                <div class="metric-value" style="color: #0066cc;">19</div>
+            </div>
+        </div>
+        
+        <div class="chart-section">
+            <h2 class="chart-title">State-level Kharif Area Change (%)</h2>
+            <p class="chart-help">Click on any bar to see crop details | Sorted from highest growth to highest contraction</p>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #0ca30c;"></div>
+                    <span>Expanding (area growing)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #d03b3b;"></div>
+                    <span>Contracting (area declining)</span>
+                </div>
+            </div>
+            <div id="chartContainer">
+                <canvas id="stateChart" role="img" aria-label="Bar chart showing state-level Kharif area percentage changes"></canvas>
+            </div>
+        </div>
+        
+        <div class="controls-section">
+            <label for="state-select" class="control-label">Select a state to view crop details:</label>
+            <select id="state-select">
+                <option value="">-- Choose a state --</option>
+            </select>
+        </div>
+        
+        <div id="state-details" class="details-section">
+            <div class="details-header" id="detail-state-name"></div>
+            <div class="details-grid">
+                <div>
+                    <h3 class="crop-list-title crop-declining-title">Declining Crops</h3>
+                    <div id="declining-list"></div>
+                    <div class="threshold-note" id="declining-note"></div>
+                </div>
+                <div>
+                    <h3 class="crop-list-title crop-growing-title">Growing Crops</h3>
+                    <div id="growing-list"></div>
+                    <div class="threshold-note" id="growing-note"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Data Source: SS_K026 | Kharif 2026 Analysis</p>
+            <p style="margin-top: 1rem;">Showing crops with |change| >= 5% or top 3 if none qualify</p>
+        </div>
+    </div>
+    
+    <script>
+        const stateData = [{"state": "CHHATTISGARH", "total_change": 2.95, "declining": [{"crop": "Soybean", "change": -35.48}], "growing": [{"crop": "Ragi", "change": 766.67}, {"crop": "Maize", "change": 105.14}, {"crop": "Jowar", "change": 100.0}, {"crop": "Sugarcane", "change": 9.73}]}, {"state": "Odisha", "total_change": 2.86, "declining": [{"crop": "Bajra", "change": -56.67}, {"crop": "Sugarcane", "change": -22.58}, {"crop": "Groundnut", "change": -9.87}], "growing": [{"crop": "Ragi", "change": 64.88}, {"crop": "Maize", "change": 58.9}, {"crop": "Jowar", "change": 44.0}]}, {"state": "ASSAM", "total_change": 2.51, "declining": [{"crop": "Jute", "change": -13.61}], "growing": [{"crop": "Sugarcane", "change": 18.75}]}, {"state": "HIMACHAL PRADESH", "total_change": 2.18, "declining": [{"crop": "Paddy", "change": -2.74}], "growing": [{"crop": "Maize", "change": 3.67}]}, {"state": "BIHAR", "total_change": 1.22, "declining": [{"crop": "Soybean", "change": -54.88}, {"crop": "Groundnut", "change": -15.38}, {"crop": "Sugarcane", "change": -13.77}], "growing": [{"crop": "Bajra", "change": 290.0}, {"crop": "Ragi", "change": 215.0}, {"crop": "Jowar", "change": 193.55}, {"crop": "Maize", "change": 30.6}, {"crop": "Jute", "change": 16.64}]}, {"state": "UTTAR PRADESH", "total_change": 0.98, "declining": [{"crop": "Cotton", "change": -19.23}], "growing": [{"crop": "Soybean", "change": 122.62}, {"crop": "Groundnut", "change": 47.89}, {"crop": "Jowar", "change": 26.27}]}, {"state": "UTTARAKHAND", "total_change": 0.95, "declining": [{"crop": "Sugarcane", "change": -22.22}], "growing": [{"crop": "Ragi", "change": 32.31}, {"crop": "Maize", "change": 12.5}, {"crop": "Soybean", "change": 12.5}]}, {"state": "WEST BENGAL", "total_change": 0.04, "declining": [{"crop": "Ragi", "change": -83.33}, {"crop": "Maize", "change": -6.79}], "growing": [{"crop": "Sugarcane", "change": 11.75}, {"crop": "Groundnut", "change": 6.06}]}, {"state": "RAJASTHAN", "total_change": -0.32, "declining": [{"crop": "Sugarcane", "change": -25.0}, {"crop": "Cotton", "change": -16.28}, {"crop": "Groundnut", "change": -12.56}, {"crop": "Soybean", "change": -5.72}], "growing": [{"crop": "Maize", "change": 10.71}, {"crop": "Jowar", "change": 8.07}]}, {"state": "MADHYA PRADESH", "total_change": -0.53, "declining": [{"crop": "Jowar", "change": -17.28}, {"crop": "Sugarcane", "change": -10.81}], "growing": [{"crop": "Bajra", "change": 49.79}, {"crop": "Groundnut", "change": 41.97}]}, {"state": "GUJARAT", "total_change": -0.66, "declining": [{"crop": "Ragi", "change": -60.0}, {"crop": "Groundnut", "change": -6.04}], "growing": [{"crop": "Jowar", "change": 18.33}, {"crop": "Soybean", "change": 9.56}]}, {"state": "PUNJAB", "total_change": -1.27, "declining": [{"crop": "Cotton", "change": -33.46}, {"crop": "Sugarcane", "change": -14.26}], "growing": [{"crop": "Groundnut", "change": 42.86}]}, {"state": "HARYANA", "total_change": -1.97, "declining": [{"crop": "Cotton", "change": -22.52}], "growing": [{"crop": "Maize", "change": 75.0}, {"crop": "Sugarcane", "change": 23.47}]}, {"state": "Maharashtra", "total_change": -2.84, "declining": [{"crop": "Ragi", "change": -26.09}, {"crop": "Jowar", "change": -15.58}, {"crop": "Bajra", "change": -13.31}, {"crop": "Maize", "change": -10.61}, {"crop": "Paddy", "change": -7.65}], "growing": [{"crop": "Groundnut", "change": 4.08}]}, {"state": "JHARKHAND", "total_change": -4.68, "declining": [{"crop": "Sugarcane", "change": -66.67}, {"crop": "Ragi", "change": -54.0}, {"crop": "Jowar", "change": -25.0}, {"crop": "Soybean", "change": -19.23}, {"crop": "Paddy", "change": -8.13}], "growing": [{"crop": "Jute", "change": 60.0}, {"crop": "Maize", "change": 28.86}, {"crop": "Groundnut", "change": 28.36}]}, {"state": "TELANGANA", "total_change": -5.33, "declining": [{"crop": "Bajra", "change": -96.67}, {"crop": "Paddy", "change": -14.44}, {"crop": "Maize", "change": -8.68}], "growing": [{"crop": "Groundnut", "change": 129.48}, {"crop": "Jowar", "change": 30.0}, {"crop": "Sugarcane", "change": 18.5}, {"crop": "Cotton", "change": 6.18}]}, {"state": "ANDHRA PRADESH", "total_change": -12.93, "declining": [{"crop": "Maize", "change": -31.67}, {"crop": "Bajra", "change": -28.75}, {"crop": "Paddy", "change": -14.75}, {"crop": "Groundnut", "change": -12.43}, {"crop": "Sugarcane", "change": -5.6}], "growing": [{"crop": "Soybean", "change": 101.87}]}, {"state": "KARNATAKA", "total_change": -19.42, "declining": [{"crop": "Paddy", "change": -46.78}, {"crop": "Groundnut", "change": -40.68}, {"crop": "Maize", "change": -23.53}, {"crop": "Ragi", "change": -22.87}, {"crop": "Bajra", "change": -18.99}, {"crop": "Jowar", "change": -11.76}], "growing": [{"crop": "Soybean", "change": 2.43}]}, {"state": "TAMIL NADU", "total_change": -21.76, "declining": [{"crop": "Ragi", "change": -55.33}, {"crop": "Paddy", "change": -33.0}, {"crop": "Cotton", "change": -29.81}, {"crop": "Bajra", "change": -17.65}, {"crop": "Maize", "change": -15.25}, {"crop": "Groundnut", "change": -11.49}], "growing": [{"crop": "Jowar", "change": 7.77}]}];
+
+        // Sort by total change
+        stateData.sort((a, b) => b.total_change - a.total_change);
+
+        // Populate select
+        const select = document.getElementById('state-select');
+        stateData.forEach(s => {
+            const option = document.createElement('option');
+            option.value = s.state;
+            option.textContent = s.state + (s.total_change > 0 ? ' (+' : ' (') + s.total_change.toFixed(2) + '%)';
+            select.appendChild(option);
+        });
+
+        // Update metrics
+        const expandCount = stateData.filter(s => s.total_change > 0).length;
+        const contractCount = stateData.filter(s => s.total_change < 0).length;
+        document.getElementById('expanding-count').textContent = expandCount;
+        document.getElementById('contracting-count').textContent = contractCount;
+        
+        const maxChange = Math.max(...stateData.map(s => s.total_change));
+        const minChange = Math.min(...stateData.map(s => s.total_change));
+        document.getElementById('range-text').textContent = '+' + maxChange.toFixed(2) + '% to ' + minChange.toFixed(2) + '%';
+
+        // Chart.js setup
+        const ctx = document.getElementById('stateChart').getContext('2d');
+        const chartData = {
+            labels: stateData.map(s => s.state),
+            datasets: [{
+                label: 'Kharif area change %',
+                data: stateData.map(s => s.total_change),
+                backgroundColor: stateData.map(s => s.total_change > 0 ? '#0ca30c' : '#d03b3b'),
+                borderColor: 'transparent',
+                borderRadius: 4
+            }]
+        };
+
+        const chart = new Chart(ctx, {
+            type: 'bar',
+            data: chartData,
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(0,0,0,0.8)',
+                        padding: 12,
+                        titleFont: { size: 13, weight: 'bold' },
+                        bodyFont: { size: 12 },
+                        callbacks: {
+                            title: function(context) {
+                                return context[0].label;
+                            },
+                            label: function(context) {
+                                const value = context.parsed.x;
+                                return (value > 0 ? '+' : '') + value.toFixed(2) + '% change';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(0,0,0,0.05)', drawBorder: false },
+                        ticks: { callback: v => v + '%' }
+                    },
+                    y: { 
+                        ticks: { font: { size: 11 } },
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+
+        // Chart click handler
+        document.getElementById('stateChart').addEventListener('click', (e) => {
+            const canvasPosition = Chart.helpers.getRelativePosition(e, chart);
+            const dataX = chart.scales.x.getValueForPixel(canvasPosition.x);
+            const dataY = chart.scales.y.getValueForPixel(canvasPosition.y);
+            if (dataY !== undefined && stateData[dataY]) {
+                document.getElementById('state-select').value = stateData[dataY].state;
+                showStateDetails(stateData[dataY].state);
+            }
+        });
+
+        // Select change handler
+        select.addEventListener('change', (e) => {
+            if (e.target.value) showStateDetails(e.target.value);
+            else document.getElementById('state-details').classList.remove('show');
+        });
+
+        function showStateDetails(stateName) {
+            const state = stateData.find(s => s.state === stateName);
+            if (!state) return;
+
+            const detailDiv = document.getElementById('state-details');
+            document.getElementById('detail-state-name').textContent = state.state + ' (' + (state.total_change > 0 ? '+' : '') + state.total_change.toFixed(2) + '%)';
+
+            // Declining crops
+            const decliningHtml = state.declining.map(c => `
+                <div class="crop-item">
+                    <div class="crop-name">${c.crop}</div>
+                    <div class="crop-change declining">${c.change.toFixed(2)}%</div>
+                </div>
+            `).join('');
+            document.getElementById('declining-list').innerHTML = decliningHtml || '<div class="no-crops">No declining crops to show</div>';
+            
+            // Add threshold note for declining
+            const declineCriteria = state.declining.some(c => c.change <= -5.0) ? 
+                'All crops with change <= -5%' : 
+                'Top 3 declining crops (no crops with <= -5% change)';
+            document.getElementById('declining-note').textContent = declineCriteria;
+
+            // Growing crops
+            const growingHtml = state.growing.map(c => `
+                <div class="crop-item">
+                    <div class="crop-name">${c.crop}</div>
+                    <div class="crop-change growing">+${c.change.toFixed(2)}%</div>
+                </div>
+            `).join('');
+            document.getElementById('growing-list').innerHTML = growingHtml || '<div class="no-crops">No growing crops to show</div>';
+            
+            // Add threshold note for growing
+            const growCriteria = state.growing.some(c => c.change >= 5.0) ? 
+                'All crops with change >= +5%' : 
+                'Top 3 growing crops (no crops with >= +5% change)';
+            document.getElementById('growing-note').textContent = growCriteria;
+
+            detailDiv.classList.add('show');
+        }
+    </script>
+</body>
+</html>
